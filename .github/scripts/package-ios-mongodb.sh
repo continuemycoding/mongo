@@ -32,7 +32,7 @@ copy_bin mongod
 copy_bin mongos
 
 # 收集并复制动态库依赖（Bazel install 树 + otool -L 递归）
-declare -A SEEN=()
+# 不用 declare -A：macOS 默认 bash 3.2 不支持关联数组
 copy_dep() {
   local dep="$1"
   [[ -z "${dep}" ]] && return 0
@@ -48,7 +48,7 @@ copy_dep() {
   else
     base="$(basename "${dep}")"
   fi
-  if [[ -n "${SEEN[${base}]:-}" ]]; then
+  if [[ -f "${DEST}/lib/${base}" ]]; then
     return 0
   fi
   if [[ -f "${dep}" ]]; then
@@ -60,7 +60,6 @@ copy_dep() {
   else
     return 0
   fi
-  SEEN["${base}"]=1
   cp -a "${resolved}" "${DEST}/lib/${base}"
   scan_deps "${DEST}/lib/${base}"
 }
