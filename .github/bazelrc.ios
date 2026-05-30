@@ -5,5 +5,8 @@
 # -target / -isysroot / -miphoneos-version-min 在 shell 中按当前 Xcode SDK 注入。
 #
 #   --//bazel/config:ssl=False
+#   --//bazel/config:server_js=False
+#   --//bazel/config:js_engine=none
 #   --copt=-march=armv8-a+crc
+#   --copt=-DXP_IOS=1
 #   --linkopt=-march=armv8-a+crc

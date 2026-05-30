@@ -81,13 +81,15 @@ IOS_LINKOPTS=(
 )
 
 # MongoDB 的 bazel wrapper 不支持 --bazelrc= 参数，iOS 相关 flag 直接传入。
-# 与 .github/bazelrc.ios 中 build:ios 段保持一致。
 bazel_args=(
   build install-mongod
   --config=local
   --config=no-remote-exec
   --//bazel/config:ssl=False
+  --//bazel/config:server_js=False
+  --//bazel/config:js_engine=none
   --copt=-march=armv8-a+crc
+  --copt=-DXP_IOS=1
   --linkopt=-march=armv8-a+crc
   --disable_warnings_as_errors=True
 )
