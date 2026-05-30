@@ -1,0 +1,39 @@
+# 越狱机命令行 MongoDB：打包 iOS 真机可运行的 mongod CLI（非 App Store 嵌入）。
+# 必须整目录部署（bin/ + lib/ + data/ 同级），不能只拷贝 mongod 单个文件。
+# 打包思路参考 continuemycoding/cpython 的 build-binaries workflow。
+name: Build iOS MongoDB
+
+on:
+  push:
+    paths:
+      - ".github/workflows/build-binaries.yml"
+      - ".github/bazelrc.ios"
+      - ".github/scripts/**"
+      - ".github/ios-mongodb.entitlements"
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: iOS mongod (arm64)
+    runs-on: macos-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install build dependencies
+        run: brew install llvm@19 lld@19 coreutils
+
+      - name: Build mongod for iOS
+        run: bash .github/scripts/build-ios-mongod.sh
+
+      - name: Package for jailbreak CLI
+        run: bash .github/scripts/package-ios-mongodb.sh bazel-bin/install-mongod mongo-ios-arm64
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mongo-ios-arm64-cli
+          path: mongo-ios-arm64/
