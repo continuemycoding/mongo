@@ -78,6 +78,13 @@ IOS_LINKOPTS=(
   "-target" "${TARGET}"
   "-isysroot" "${SDK}"
   "-miphoneos-version-min=${IPHONEOS_DEPLOYMENT_TARGET}"
+  "-march=armv8-a+crc"
+  # 强制链接器使用 iPhoneOS SDK，避免链入 MacOSX.sdk 的 libc++/CoreFoundation
+  "-Wl,-syslibroot,${SDK}"
+  "-L${SDK}/usr/lib"
+  "-F${SDK}/System/Library/Frameworks"
+  "-F${SDK}/System/Library/SubFrameworks"
+  "-Wl,-platform_version,ios,${IPHONEOS_DEPLOYMENT_TARGET},${IPHONEOS_DEPLOYMENT_TARGET}"
 )
 
 # MongoDB 的 bazel wrapper 不支持 --bazelrc= 参数，iOS 相关 flag 直接传入。
@@ -91,7 +98,8 @@ bazel_args=(
   --//bazel/config:js_engine=none
   --copt=-march=armv8-a+crc
   --copt=-DXP_IOS=1
-  --linkopt=-march=armv8-a+crc
+  --action_env=SDKROOT="${SDK}"
+  --action_env=IPHONEOS_DEPLOYMENT_TARGET="${IPHONEOS_DEPLOYMENT_TARGET}"
   --disable_warnings_as_errors=True
 )
 for flag in "${IOS_CFLAGS[@]}"; do
