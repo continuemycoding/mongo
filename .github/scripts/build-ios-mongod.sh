@@ -92,6 +92,8 @@ bazel_args=(
   build install-mongod
   --config=local
   --config=no-remote-exec
+  # 覆盖 common:macos 默认 -c dbg，CI 只打 install-mongod 用 fastbuild 显著缩短编译时间
+  --config=fastbuild
   --//bazel/config:ssl=False
   --//bazel/config:http_client=False
   --//bazel/config:server_js=False
