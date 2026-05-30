@@ -86,6 +86,7 @@ bazel_args=(
   --config=local
   --config=no-remote-exec
   --//bazel/config:ssl=False
+  --//bazel/config:http_client=False
   --//bazel/config:server_js=False
   --//bazel/config:js_engine=none
   --copt=-march=armv8-a+crc
