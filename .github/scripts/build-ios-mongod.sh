@@ -80,12 +80,15 @@ IOS_LINKOPTS=(
   "-miphoneos-version-min=${IPHONEOS_DEPLOYMENT_TARGET}"
 )
 
+# MongoDB 的 bazel wrapper 不支持 --bazelrc= 参数，iOS 相关 flag 直接传入。
+# 与 .github/bazelrc.ios 中 build:ios 段保持一致。
 bazel_args=(
   build install-mongod
-  --bazelrc=.github/bazelrc.ios
   --config=local
   --config=no-remote-exec
-  --config=ios
+  --//bazel/config:ssl=False
+  --copt=-march=armv8-a+crc
+  --linkopt=-march=armv8-a+crc
   --disable_warnings_as_errors=True
 )
 for flag in "${IOS_CFLAGS[@]}"; do

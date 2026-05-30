@@ -1,7 +1,9 @@
-# iOS 越狱机交叉编译（配合 .github/scripts/build-ios-mongod.sh 注入 SDK 路径）
+# iOS 越狱机交叉编译参考配置（由 build-ios-mongod.sh 内联传入，wrapper 不支持 --bazelrc=）
 #
 # libmongocrypt 的 kms_crypto_apple.c 使用 macOS 专有 Security API（SecItemImport），
 # iPhoneOS SDK 不提供，故关闭 SSL 走 none 加密后端。
-build:ios --//bazel/config:ssl=False
-build:ios --copt=-march=armv8-a+crc
-build:ios --linkopt=-march=armv8-a+crc
+# -target / -isysroot / -miphoneos-version-min 在 shell 中按当前 Xcode SDK 注入。
+#
+#   --//bazel/config:ssl=False
+#   --copt=-march=armv8-a+crc
+#   --linkopt=-march=armv8-a+crc
