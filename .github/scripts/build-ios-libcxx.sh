@@ -39,10 +39,11 @@ fi
 CC="$(xcrun -sdk iphoneos --find clang)"
 CXX="$(xcrun -sdk iphoneos --find clang++)"
 
-# 必须从 llvm/ 入口配置 runtimes；直接用 runtimes/ 作 -S 会导致找不到 cxxabi.h。
+# 必须用 runtimes/ 独立构建；从 llvm/ 入口会拉起 TableGen 并在 iOS 交叉编译下失败。
+# 显式指定 libcxxabi 头路径，避免 exception.cpp 报 cxxabi.h not found。
 rm -rf "${CMAKE_DIR}"
 cmake -G Ninja \
-  -S "${SRC_DIR}/llvm" \
+  -S "${SRC_DIR}/runtimes" \
   -B "${CMAKE_DIR}" \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_SYSTEM_NAME=iOS \
@@ -55,20 +56,23 @@ cmake -G Ninja \
   -DCMAKE_CXX_COMPILER="${CXX}" \
   -DCMAKE_C_COMPILER_TARGET="${TARGET}" \
   -DCMAKE_CXX_COMPILER_TARGET="${TARGET}" \
-  -DLLVM_ENABLE_PROJECTS="" \
-  -DLLVM_ENABLE_RUNTIMES="libcxx;libcxxabi" \
+  -DLLVM_DEFAULT_TARGET_TRIPLE="${TARGET}" \
+  -DLLVM_ENABLE_RUNTIMES="libcxxabi;libcxx" \
   -DLLVM_INCLUDE_TESTS=OFF \
-  -DLLVM_INCLUDE_EXAMPLES=OFF \
-  -DLLVM_INCLUDE_BENCHMARKS=OFF \
-  -DLLVM_BUILD_TOOLS=OFF \
+  -DLLVM_INCLUDE_DOCS=OFF \
+  -DLIBCXX_CXX_ABI=libcxxabi \
   -DLIBCXX_ENABLE_SHARED=ON \
   -DLIBCXX_ENABLE_STATIC=OFF \
   -DLIBCXXABI_ENABLE_SHARED=ON \
   -DLIBCXXABI_USE_LLVM_UNWINDER=OFF \
   -DLIBCXX_INSTALL_LIBRARY=ON \
-  -DLIBCXXABI_INSTALL_LIBRARY=ON
+  -DLIBCXXABI_INSTALL_LIBRARY=ON \
+  -DCMAKE_C_FLAGS="-isystem ${SRC_DIR}/libcxxabi/include" \
+  -DCMAKE_CXX_FLAGS="-isystem ${SRC_DIR}/libcxxabi/include"
 
-ninja -C "${CMAKE_DIR}" install
+# 先编 libcxxabi 再编 libc++，与 LLVM 默认 layering 一致。
+ninja -C "${CMAKE_DIR}" cxxabi_shared cxx_shared
+ninja -C "${CMAKE_DIR}" install-cxxabi install-cxx
 
 if ! nm -gU "${INSTALL_DIR}/lib/libc++.1.dylib" | grep -q '__ZTVNSt3__13pmr15memory_resourceE'; then
   echo "error: built libc++.1.dylib is missing std::pmr::memory_resource vtable" >&2
