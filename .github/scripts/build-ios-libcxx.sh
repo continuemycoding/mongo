@@ -40,14 +40,13 @@ CC="$(xcrun -sdk iphoneos --find clang)"
 CXX="$(xcrun -sdk iphoneos --find clang++)"
 
 # 必须用 runtimes/ 独立构建；从 llvm/ 入口会拉起 TableGen 并在 iOS 交叉编译下失败。
+# 不要设 CMAKE_SYSTEM_NAME=iOS：LLVM HandleLLVMOptions 仅识别 Darwin，设 iOS 会误加 GNU ld 的 -Wl,-z,defs。
 # 显式指定 libcxxabi 头路径，避免 exception.cpp 报 cxxabi.h not found。
 rm -rf "${CMAKE_DIR}"
 cmake -G Ninja \
   -S "${SRC_DIR}/runtimes" \
   -B "${CMAKE_DIR}" \
   -DCMAKE_BUILD_TYPE=Release \
-  -DCMAKE_SYSTEM_NAME=iOS \
-  -DCMAKE_CROSSCOMPILING=TRUE \
   -DCMAKE_OSX_SYSROOT="${SDK}" \
   -DCMAKE_OSX_ARCHITECTURES=arm64 \
   -DCMAKE_OSX_DEPLOYMENT_TARGET="${DEPLOY}" \
