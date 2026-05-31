@@ -32,9 +32,9 @@ jobs:
           path: |
             .ios-libcxx
             .ios-libcxx-build/llvm-project-19.1.7.src
-          key: ios-libcxx-19.1.7-arm64-${{ runner.os }}-${{ hashFiles('.github/scripts/build-ios-libcxx.sh') }}
+          key: ios-libcxx-19.1.7-arm64-v2-${{ runner.os }}-${{ hashFiles('.github/scripts/build-ios-libcxx.sh') }}
           restore-keys: |
-            ios-libcxx-19.1.7-arm64-${{ runner.os }}-
+            ios-libcxx-19.1.7-arm64-v2-${{ runner.os }}-
 
       - name: Build mongod for iOS
         run: bash .github/scripts/build-ios-mongod.sh

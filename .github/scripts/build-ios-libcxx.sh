@@ -9,10 +9,12 @@ INSTALL_DIR="${IOS_LIBCXX_DIR:-${REPO_ROOT}/.ios-libcxx}"
 LLVM_VERSION="${LLVM_RUNTIME_VERSION:-19.1.7}"
 BUILD_DIR="${REPO_ROOT}/.ios-libcxx-build"
 SRC_DIR="${BUILD_DIR}/llvm-project-${LLVM_VERSION}.src"
+CMAKE_DIR="${BUILD_DIR}/cmake"
 
 SDK="$(xcrun --sdk iphoneos --show-sdk-path)"
 export SDKROOT="${SDK}"
 DEPLOY="${IPHONEOS_DEPLOYMENT_TARGET:-15.0}"
+TARGET="arm64-apple-ios${DEPLOY}"
 
 if [[ -f "${INSTALL_DIR}/lib/libc++.1.dylib" && -f "${INSTALL_DIR}/lib/libc++abi.dylib" ]]; then
   if file -b "${INSTALL_DIR}/lib/libc++.1.dylib" | grep -q 'arm64'; then
@@ -37,25 +39,36 @@ fi
 CC="$(xcrun -sdk iphoneos --find clang)"
 CXX="$(xcrun -sdk iphoneos --find clang++)"
 
+# 必须从 llvm/ 入口配置 runtimes；直接用 runtimes/ 作 -S 会导致找不到 cxxabi.h。
+rm -rf "${CMAKE_DIR}"
 cmake -G Ninja \
-  -S "${SRC_DIR}/runtimes" \
-  -B "${BUILD_DIR}/cmake" \
+  -S "${SRC_DIR}/llvm" \
+  -B "${CMAKE_DIR}" \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_SYSTEM_NAME=iOS \
+  -DCMAKE_CROSSCOMPILING=TRUE \
   -DCMAKE_OSX_SYSROOT="${SDK}" \
   -DCMAKE_OSX_ARCHITECTURES=arm64 \
   -DCMAKE_OSX_DEPLOYMENT_TARGET="${DEPLOY}" \
   -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}" \
-  -DLLVM_ENABLE_RUNTIMES="libcxx;libc++abi" \
+  -DCMAKE_C_COMPILER="${CC}" \
+  -DCMAKE_CXX_COMPILER="${CXX}" \
+  -DCMAKE_C_COMPILER_TARGET="${TARGET}" \
+  -DCMAKE_CXX_COMPILER_TARGET="${TARGET}" \
+  -DLLVM_ENABLE_PROJECTS="" \
+  -DLLVM_ENABLE_RUNTIMES="libcxx;libcxxabi" \
+  -DLLVM_INCLUDE_TESTS=OFF \
+  -DLLVM_INCLUDE_EXAMPLES=OFF \
+  -DLLVM_INCLUDE_BENCHMARKS=OFF \
+  -DLLVM_BUILD_TOOLS=OFF \
   -DLIBCXX_ENABLE_SHARED=ON \
   -DLIBCXX_ENABLE_STATIC=OFF \
   -DLIBCXXABI_ENABLE_SHARED=ON \
+  -DLIBCXXABI_USE_LLVM_UNWINDER=OFF \
   -DLIBCXX_INSTALL_LIBRARY=ON \
-  -DLIBCXXABI_INSTALL_LIBRARY=ON \
-  -DCMAKE_C_COMPILER="${CC}" \
-  -DCMAKE_CXX_COMPILER="${CXX}"
+  -DLIBCXXABI_INSTALL_LIBRARY=ON
 
-ninja -C "${BUILD_DIR}/cmake" install
+ninja -C "${CMAKE_DIR}" install
 
 if ! nm -gU "${INSTALL_DIR}/lib/libc++.1.dylib" | grep -q '__ZTVNSt3__13pmr15memory_resourceE'; then
   echo "error: built libc++.1.dylib is missing std::pmr::memory_resource vtable" >&2
