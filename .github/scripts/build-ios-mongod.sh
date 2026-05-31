@@ -69,7 +69,10 @@ done
 python buildscripts/install_bazel.py
 export PATH="${HOME}/.local/bin:${PATH}"
 
-# -target / -isysroot 需跟当前 Xcode SDK 绑定，在 shell 里注入；bazelrc.ios 管 ssl 与 +crc
+# Homebrew LLVM 头文件含 std::pmr，设备 /usr/lib/libc++.1.dylib 过旧；打包时随包带上 iOS libc++。
+bash "${REPO_ROOT}/.github/scripts/build-ios-libcxx.sh"
+
+# -target / -isysroot 需跟当前 Xcode SDK 绑定，在 shell 里注入
 IOS_CFLAGS=(
   "-target" "${TARGET}"
   "-isysroot" "${SDK}"

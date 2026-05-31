@@ -7,7 +7,6 @@ on:
   push:
     paths:
       - ".github/workflows/build-binaries.yml"
-      - ".github/bazelrc.ios"
       - ".github/scripts/**"
       - ".github/ios-mongodb.entitlements"
   workflow_dispatch:
@@ -25,7 +24,17 @@ jobs:
           python-version: "3.13"
 
       - name: Install build dependencies
-        run: brew install llvm@19 lld@19 coreutils
+        run: brew install llvm@19 lld@19 coreutils ninja cmake
+
+      - name: Cache iOS libc++
+        uses: actions/cache@v4
+        with:
+          path: |
+            .ios-libcxx
+            .ios-libcxx-build/llvm-project-19.1.7.src
+          key: ios-libcxx-19.1.7-arm64-${{ runner.os }}-${{ hashFiles('.github/scripts/build-ios-libcxx.sh') }}
+          restore-keys: |
+            ios-libcxx-19.1.7-arm64-${{ runner.os }}-
 
       - name: Build mongod for iOS
         run: bash .github/scripts/build-ios-mongod.sh
