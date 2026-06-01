@@ -36,11 +36,18 @@ jobs:
           restore-keys: |
             ios-libcxx-19.1.7-arm64-v4-${{ runner.os }}-
 
-      - name: Build mongod for iOS
+      - name: Build and package mongod for iOS
         run: bash .github/scripts/build-ios-mongod.sh
 
-      - name: Package for jailbreak CLI
-        run: bash .github/scripts/package-ios-mongodb.sh bazel-bin/install-mongod mongo-ios-arm64
+      - name: Verify package layout
+        run: |
+          set -euo pipefail
+          test -f mongo-ios-arm64/bin/mongod
+          test -f mongo-ios-arm64/run-mongod
+          test -n "$(find mongo-ios-arm64/lib -maxdepth 1 -name 'libc++*.dylib' -print -quit)"
+          test -n "$(find mongo-ios-arm64/lib -maxdepth 1 -name 'libc++abi*.dylib' -print -quit)"
+          ls -la mongo-ios-arm64/lib/
+          otool -L mongo-ios-arm64/bin/mongod | grep -E 'libc\+\+|libc++abi'
 
       - uses: actions/upload-artifact@v4
         with:

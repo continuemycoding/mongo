@@ -71,11 +71,40 @@ cmake -G Ninja \
 
 # 先编 libcxxabi 再编 libc++，与 LLVM 默认 layering 一致。
 ninja -C "${CMAKE_DIR}" cxxabi_shared cxx_shared
-ninja -C "${CMAKE_DIR}" install-cxxabi install-cxx
+ninja -C "${CMAKE_DIR}" install
 
-if ! nm -gU "${INSTALL_DIR}/lib/libc++.1.dylib" | grep -q '__ZTVNSt3__13pmr15memory_resourceE'; then
-  echo "error: built libc++.1.dylib is missing std::pmr::memory_resource vtable" >&2
+normalize_libcxx_install() {
+  local libdir="${INSTALL_DIR}/lib"
+  local base real
+  shopt -s nullglob
+  for base in "${libdir}"/libc++*.1.*.dylib "${libdir}"/libc++abi*.1.*.dylib; do
+    [[ -f "${base}" ]] || continue
+    ln -sf "$(basename "${base}")" "${libdir}/$(echo "$(basename "${base}")" | sed -E 's/\.[0-9]+\.[0-9]+\.dylib$/.dylib/')"
+    ln -sf "$(basename "${base}")" "${libdir}/$(echo "$(basename "${base}")" | sed -E 's/\.[0-9]+\.[0-9]+\.dylib$/.1.dylib/')"
+  done
+  shopt -u nullglob
+}
+
+normalize_libcxx_install
+
+if ! compgen -G "${INSTALL_DIR}/lib/libc++"*.dylib >/dev/null; then
+  echo "error: ${INSTALL_DIR}/lib is missing libc++ dylibs after install" >&2
+  ls -la "${INSTALL_DIR}/lib" >&2 || true
   exit 1
+fi
+if ! compgen -G "${INSTALL_DIR}/lib/libc++abi"*.dylib >/dev/null; then
+  echo "error: ${INSTALL_DIR}/lib is missing libc++abi dylibs after install" >&2
+  ls -la "${INSTALL_DIR}/lib" >&2 || true
+  exit 1
+fi
+
+if ! nm -gU "${INSTALL_DIR}/lib/libc++.1.dylib" 2>/dev/null | grep -q '__ZTVNSt3__13pmr15memory_resourceE'; then
+  # libc++.1.dylib 可能是 symlink，解析后再检查
+  real_cpp="$(cd "${INSTALL_DIR}/lib" && readlink libc++.1.dylib 2>/dev/null || echo libc++.1.dylib)"
+  if ! nm -gU "${INSTALL_DIR}/lib/${real_cpp}" | grep -q '__ZTVNSt3__13pmr15memory_resourceE'; then
+    echo "error: built libc++.dylib is missing std::pmr::memory_resource vtable" >&2
+    exit 1
+  fi
 fi
 
 echo "Installed iOS libc++ to ${INSTALL_DIR}"

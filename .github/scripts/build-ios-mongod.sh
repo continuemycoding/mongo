@@ -118,3 +118,9 @@ echo "Running: bazel ${bazel_args[*]}"
 bazel "${bazel_args[@]}"
 
 echo "Build finished: ${REPO_ROOT}/bazel-bin/install-mongod/bin/mongod"
+
+bash "${REPO_ROOT}/.github/scripts/package-ios-mongodb.sh" \
+  "${REPO_ROOT}/bazel-bin/install-mongod" \
+  "${REPO_ROOT}/mongo-ios-arm64"
+
+echo "Package finished: ${REPO_ROOT}/mongo-ios-arm64/"
